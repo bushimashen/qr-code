@@ -1,0 +1,8 @@
+QR Code Generator for JavaScript
+Copyright (c) 2009 Kazuhiko Arase
+
+URL: http://www.d-project.com/
+Licensed under the MIT license:
+  http://www.opensource.org/licenses/mit-license.php
+
+本目录下的 qrcode.js 是 qrcode-generator 2.0.4 的官方 dist 产物（未修改）。

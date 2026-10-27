@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>二维码生成器 · 16 种模块风格，可放 Logo，导出 PNG/SVG</title>
+<meta name="description" content="生成好看的二维码：16 种模块风格、4 种定位角、5 种边框、上下横幅、中心 Logo 自动挖空、线性/径向渐变、L/M/Q/H 容错，导出多大尺寸的 PNG 与矢量 SVG。全部本地生成。" />
+<meta property="og:title" content="二维码生成器" />
+<meta property="og:description" content="16 种模块风格 + Logo 挖空 + 渐变 + 边框横幅，导出 PNG/SVG。" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='1.8'%3E%3Crect x='3' y='3' width='7' height='7' rx='1.4'/%3E%3Crect x='14' y='3' width='7' height='7' rx='1.4'/%3E%3Crect x='3' y='14' width='7' height='7' rx='1.4'/%3E%3Cpath d='M14 14h3v3h-3zM20 14v3M14 20h6' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+[hidden] { display: none !important; }
+
+:root {
+  --bg: #f5f6fa; --surface: #fff; --surface2: #f4f6fb; --surface3: #e8ecf5;
+  --text: #111827; --muted: #6b7385; --border: #e2e6ef;
+  --primary: #111827; --accent: #7c3aed; --danger: #e11d48;
+  --shadow: 0 8px 28px rgba(23, 32, 64, .08);
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1017; --surface: #151a24; --surface2: #1b2130; --surface3: #232b3a;
+    --text: #e8ecf4; --muted: #8b93a7; --border: #26303b;
+    --shadow: 0 10px 34px rgba(0, 0, 0, .45);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13.5px; line-height: 1.55; -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 1180px; margin: 0 auto; padding: 22px 20px 44px; }
+
+.head h1 { margin: 0 0 6px; font-size: 25px; }
+.head p { margin: 0 0 18px; color: var(--muted); max-width: 760px; }
+.head b { color: var(--text); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; align-items: start; }
+@media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: var(--shadow); padding: 16px 18px;
+}
+.card + .card { margin-top: 14px; }
+.card h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; }
+
+label.sec { display: block; color: var(--muted); font-size: 12px; font-weight: 600; margin: 12px 0 6px; }
+label.sec:first-of-type { margin-top: 0; }
+
+textarea, input[type="text"], select, input[type="number"] {
+  width: 100%; background: var(--surface2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px;
+  font-size: 13px; font-family: inherit; outline: none;
+}
+textarea { min-height: 74px; resize: vertical; font-family: var(--mono); }
+textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.chip:hover { background: var(--surface3); }
+.chip.on { background: var(--primary); border-color: transparent; color: #fff; }
+
+.swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.swatches input[type="color"] {
+  width: 38px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface2); cursor: pointer;
+}
+.mini {
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.mini:hover { background: var(--surface3); }
+.mini.primary { background: linear-gradient(135deg, #111827, #4b5563); border: none; color: #fff; }
+.mini.wide { width: 100%; margin-top: 8px; padding: 10px; font-size: 13px; }
+
+.row { display: flex; gap: 8px; align-items: center; }
+.row + .row { margin-top: 8px; }
+.row > .grow { flex: 1; min-width: 0; }
+
+/* ---------- 预览 ---------- */
+.preview-wrap { position: sticky; top: 18px; }
+.stage {
+  display: grid; place-items: center; padding: 18px; border-radius: 14px;
+  background: repeating-conic-gradient(#eef1f6 0% 25%, #ffffff 0% 50%) 50% / 18px 18px;
+  border: 1px solid var(--border); min-height: 360px;
+}
+.stage canvas { max-width: 100%; height: auto; display: block; }
+.meta { margin-top: 10px; color: var(--muted); font-size: 12.5px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.err { color: var(--danger); font-size: 12.5px; margin-top: 8px; }
+
+.foot {
+  margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--border);
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  color: var(--muted); font-size: 12.5px;
+}
+.foot a { color: var(--accent); text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="head">
+    <h1>二维码生成器</h1>
+    <p>
+      <b>16 种模块风格</b>、4 种定位角、5 种边框、上下横幅、中心 Logo 自动挖空、线性 / 径向渐变，
+      容错等级 L/M/Q/H 可选。导出多大尺寸的 PNG 都清晰，也能导出矢量 SVG。全部在本地生成。
+    </p>
+  </header>
+
+  <div class="layout">
+    <div>
+      <section class="card">
+        <h2>内容</h2>
+        <textarea id="text" spellcheck="false" placeholder="https://example.com">https://nbcode.top</textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="mini" data-preset="https://">网址</button>
+          <button class="mini" data-preset="WIFI:T:WPA;S:名称;P:密码;;">Wi-Fi</button>
+          <button class="mini" data-preset="tel:">电话</button>
+          <button class="mini" data-preset="mailto:">邮件</button>
+          <button class="mini" data-preset="BEGIN:VCARD
+VERSION:3.0
+FN:张三
+TEL:13800000000
+END:VCARD">名片</button>
+        </div>
+        <div class="err" id="err" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2>模块风格</h2>
+        <div class="chips" id="styles"></div>
+
+        <label class="sec">定位角</label>
+        <div class="chips" id="corners"></div>
+
+        <label class="sec">边框</label>
+        <div class="chips" id="frames"></div>
+
+        <label class="sec">横幅</label>
+        <div class="chips" id="banners"></div>
+        <input type="text" id="bannerText" value="扫一扫 · 了解更多" style="margin-top:8px" />
+
+        <label class="sec">容错等级（越高越耐遮挡；放 Logo 建议 Q 或 H）</label>
+        <div class="chips" id="ecc"></div>
+      </section>
+
+      <section class="card">
+        <h2>颜色</h2>
+        <label class="sec">填充方式</label>
+        <div class="chips" id="fills"></div>
+        <div class="swatches" style="margin-top:10px">
+          <input type="color" id="fg1" value="#111827" />
+          <span style="color:var(--muted);font-size:12px">主色</span>
+          <input type="color" id="fg2" value="#7c3aed" />
+          <span style="color:var(--muted);font-size:12px">渐变次色</span>
+          <span style="flex:1"></span>
+          <span style="color:var(--muted);font-size:12px">背景</span>
+          <input type="color" id="bg" value="#ffffff" />
+          <button class="mini" id="transBg">透明背景</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Logo（可选）</h2>
+        <div class="row">
+          <button class="mini" id="pickLogo">选择图片</button>
+          <button class="mini" id="clearLogo" hidden>移除</button>
+          <span style="flex:1"></span>
+          <span style="color:var(--muted);font-size:12px">挖空底下码点</span>
+          <input type="checkbox" id="hideDots" checked />
+        </div>
+        <div class="row">
+          <span style="color:var(--muted);font-size:12px;width:52px">大小</span>
+          <input type="range" id="logoScale" min="10" max="34" value="22" style="flex:1" />
+          <span style="color:var(--muted);font-size:12px" id="logoScaleVal">22%</span>
+        </div>
+        <div class="row">
+          <span style="color:var(--muted);font-size:12px;width:52px">留白</span>
+          <input type="range" id="logoPad" min="0" max="3" step="0.5" value="1" style="flex:1" />
+          <span style="color:var(--muted);font-size:12px" id="logoPadVal">1</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="preview-wrap">
+      <section class="card">
+        <div class="stage"><canvas id="cv" width="1024" height="1024"></canvas></div>
+        <div class="meta">
+          <span id="meta1">—</span>
+          <span id="meta2">—</span>
+        </div>
+
+        <label class="sec">导出尺寸</label>
+        <div class="chips" id="sizes"></div>
+
+        <div class="row" style="margin-top:12px">
+          <button class="mini primary wide" id="dlPng">下载 PNG</button>
+        </div>
+        <div class="row">
+          <button class="mini wide" id="dlSvg">下载 SVG（矢量）</button>
+        </div>
+        <div class="row">
+          <button class="mini wide" id="reseed">换一组随机细节</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <span>单文件 · 本机生成 · 内容不外发</span>
+    <span>
+      <a href="https://github.com/bushimashen/qr-code" target="_blank" rel="noopener">GitHub</a>
+      · <a href="https://gitee.com/codegoder/qr-code" target="_blank" rel="noopener">Gitee</a>
+    </span>
+  </footer>
+</div>
+
+<input type="file" id="fileLogo" accept="image/*" hidden />
+
+<script src="vendor/qrcode.js"></script>
+<script>
+/* UTF-8：库默认按单字节处理，中文内容必须换成 UTF-8 编码器，否则扫出来是乱码 */
+qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8']
+
+const $ = (id) => document.getElementById(id)
+
+/* ================= 选项定义 ================= */
+const STYLES = [
+  { id: 'square', name: '经典方块' },
+  { id: 'rounded', name: '圆润方块' },
+  { id: 'dots', name: '圆点气泡' },
+  { id: 'liquid', name: '液态融合' },
+  { id: 'classy', name: '斜角优雅' },
+  { id: 'ring', name: '甜甜圈' },
+  { id: 'line', name: '编码条纹' },
+  { id: 'jitter', name: '星屑抖动' },
+  { id: 'dsj', name: '方粒拼贴' },
+  { id: 'iso', name: '2.5D 积木' },
+  { id: 'vline', name: '编码竖纹' },
+  { id: 'diamond', name: '菱形模块' },
+  { id: 'plus', name: '十字网格' },
+  { id: 'target', name: '同心圆点' },
+  { id: 'fade', name: '由心渐变' },
+  { id: 'randrect', name: '随机拼块' }
+]
+const CORNERS = [{ id: 'auto', name: '随风格' }, { id: 'square', name: '方框' }, { id: 'rounded', name: '圆角' }, { id: 'dot', name: '圆点' }]
+const FRAMES = [{ id: 'none', name: '无' }, { id: 'line', name: '细线框' }, { id: 'card', name: '圆角卡片' }, { id: 'double', name: '双线框' }, { id: 'dashed', name: '虚线框' }]
+const BANNERS = [{ id: 'none', name: '无' }, { id: 'bottom', name: '底部' }, { id: 'top', name: '顶部' }, { id: 'both', name: '上下' }]
+const ECCS = [{ id: 'L', name: 'L · 7%' }, { id: 'M', name: 'M · 15%' }, { id: 'Q', name: 'Q · 25%' }, { id: 'H', name: 'H · 30%' }]
+const FILLS = [{ id: 'solid', name: '纯色' }, { id: 'linear', name: '线性渐变' }, { id: 'radial', name: '径向渐变' }]
+const SIZES = [512, 1024, 2048]
+
+/* ================= 状态 ================= */
+const S = {
+  styleId: 'liquid', cornerStyle: 'auto', frameStyle: 'none', bannerPos: 'none',
+  ecc: 'M', fillMode: 'solid', fg1: '#111827', fg2: '#7c3aed', bg: '#ffffff',
+  transparent: false, margin: 4, seed: 1, exportSize: 1024,
+  logoImg: null, logoScale: 0.22, logoPad: 1, hideDots: true
+}
+
+const BANNER_H = 4
+
+/* ================= 工具 ================= */
+function hashSeed(str) {
+  let h = 2166136261
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return h >>> 0
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+function shade(hex, k) {
+  const v = parseInt(hex.slice(1), 16)
+  let r = (v >> 16) & 255, g = (v >> 8) & 255, b = v & 255
+  if (k < 0) { r *= 1 + k; g *= 1 + k; b *= 1 + k } else { r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k }
+  const to = (x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, '0')
+  return '#' + to(r) + to(g) + to(b)
+}
+function rrPath(x, y, w, h, radii) {
+  const [tl, tr, br, bl] = radii.map((v) => Math.min(v, w / 2, h / 2))
+  return `M${x + tl},${y} L${x + w - tr},${y} Q${x + w},${y} ${x + w},${y + tr}`
+    + ` L${x + w},${y + h - br} Q${x + w},${y + h} ${x + w - br},${y + h}`
+    + ` L${x + bl},${y + h} Q${x},${y + h} ${x},${y + h - bl}`
+    + ` L${x},${y + tl} Q${x},${y} ${x + tl},${y} Z`
+}
+const f2 = (v) => +v.toFixed(3)
+
+/* ================= 矩阵 ================= */
+function buildMatrix(content, level) {
+  const qr = qrcode(0, level)
+  qr.addData(content && content.length ? content : ' ')
+  qr.make()
+  const count = qr.getModuleCount()
+  const m = []
+  for (let r = 0; r < count; r++) {
+    const row = []
+    for (let c = 0; c < count; c++) row.push(qr.isDark(r, c))
+    m.push(row)
+  }
+  return m
+}
+function inFinder(r, c, n) {
+  return (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7)
+}
+
+/* ================= Logo 区域 ================= */
+function logoRect(n) {
+  if (!S.logoImg) return null
+  const half = (S.logoScale * n) / 2
+  const pad = S.logoPad
+  return { x: n / 2 - half - pad, y: n / 2 - half - pad, w: half * 2 + pad * 2, h: half * 2 + pad * 2 }
+}
+function underLogo(r, c, n) {
+  const L = logoRect(n)
+  if (!L || !S.hideDots) return false
+  return c + 0.5 > L.x && c + 0.5 < L.x + L.w && r + 0.5 > L.y && r + 0.5 < L.y + L.h
+}
+
+/* ================= 边框/横幅占位 ================= */
+function framePads(n) {
+  const f = S.frameStyle
+  let pad = 0
+  if (f === 'line' || f === 'dashed') pad = 1.5
+  else if (f === 'card') pad = 1.9
+  else if (f === 'double') pad = 2.2
+  let padT = pad, padB = pad
+  if (S.bannerPos === 'bottom') padB += BANNER_H
+  else if (S.bannerPos === 'top') padT += BANNER_H
+  else if (S.bannerPos === 'both') { padT += BANNER_H; padB += BANNER_H }
+  return { padAll: Math.max(padT, padB, pad) }
+}
+
+/* ================= 绘制指令（模块坐标 0..n） ================= */
+function buildOps(m) {
+  const n = m.length
+  const ops = []
+  const rand = mulberry32(hashSeed(`${S.styleId}|${S.seed}`))
+  const isDark = (r, c) => r >= 0 && r < n && c >= 0 && c < n && m[r][c]
+  const paint = makePaint(n)
+
+  const addRRect = (x, y, w, h, radii) => ops.push({ k: 'path', d: rrPath(x, y, w, h, radii), paint })
+  const addCircle = (cx, cy, r) => ops.push({ k: 'circle', cx, cy, r, paint })
+  const addPoly = (pts) => ops.push({ k: 'poly', pts: pts.map((p) => [f2(p[0]), f2(p[1])]), paint })
+
+  // 随机拼块：贪心合并相邻码点为圆角矩形
+  if (S.styleId === 'randrect') {
+    const used = new Set()
+    const ok = (r, c) => r >= 0 && r < n && c >= 0 && c < n && m[r][c] && !inFinder(r, c, n) && !underLogo(r, c, n) && !used.has(r * n + c)
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        if (!ok(r, c)) continue
+        let w = 1, h = 1
+        const roll = rand()
+        if (roll < 0.2) {
+          if (ok(r, c + 1) && ok(r + 1, c) && ok(r + 1, c + 1)) { w = 2; h = 2 }
+          else if (ok(r, c + 1)) w = 2
+          else if (ok(r + 1, c)) h = 2
+        } else if (roll < 0.45) { if (ok(r, c + 1)) w = 2 }
+        else if (roll < 0.7) { if (ok(r + 1, c)) h = 2 }
+        for (let i = 0; i < h; i++) for (let j = 0; j < w; j++) used.add((r + i) * n + (c + j))
+        const rr = Math.min(w, h) * 0.28
+        addRRect(c, r, w, h, [rr, rr, rr, rr])
+      }
+    }
+  }
+
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!m[r][c] || inFinder(r, c, n) || underLogo(r, c, n)) continue
+      const x = c, y = r
+      const top = isDark(r - 1, c), bottom = isDark(r + 1, c), left = isDark(r, c - 1), right = isDark(r, c + 1)
+      switch (S.styleId) {
+        case 'square': addRRect(x, y, 1, 1, [0, 0, 0, 0]); break
+        case 'rounded': addRRect(x + 0.03, y + 0.03, 0.94, 0.94, [0.3, 0.3, 0.3, 0.3]); break
+        case 'dots': addCircle(x + 0.5, y + 0.5, 0.44); break
+        case 'liquid':
+          addRRect(x, y, 1, 1, [
+            !top && !left ? 0.5 : 0, !top && !right ? 0.5 : 0,
+            !bottom && !right ? 0.5 : 0, !bottom && !left ? 0.5 : 0
+          ])
+          break
+        case 'classy':
+          addRRect(x, y, 1, 1, [0, !top && !right ? 0.5 : 0, 0, !bottom && !left ? 0.5 : 0])
+          break
+        case 'ring': {
+          const links = (top ? 1 : 0) + (bottom ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0)
+          if (links === 0) ops.push({ k: 'ringop', cx: x + 0.5, cy: y + 0.5, r: 0.32, lw: 0.2, paint })
+          else addCircle(x + 0.5, y + 0.5, 0.45)
+          break
+        }
+        case 'line': {
+          if (left) break
+          let len = 1
+          while (isDark(r, c + len) && !inFinder(r, c + len, n) && !underLogo(r, c + len, n)) len++
+          addRRect(x, y + 0.12, len, 0.76, [0.38, 0.38, 0.38, 0.38])
+          break
+        }
+        case 'jitter': {
+          const rr = 0.36 + rand() * 0.14
+          addCircle(x + 0.5 + (rand() - 0.5) * 0.12, y + 0.5 + (rand() - 0.5) * 0.12, rr)
+          break
+        }
+        case 'dsj': {
+          const sz = 0.6 + rand() * 0.26
+          addRRect(x + rand() * (1 - sz) * 0.7, y + rand() * (1 - sz) * 0.7, sz, sz, [sz * 0.25, sz * 0.25, sz * 0.25, sz * 0.25])
+          break
+        }
+        case 'iso': {
+          // 等距立方体：顶面主色，左右面压暗模拟受光
+          const d = 0.28
+          const cx = x + 0.5, cy = y + 0.5
+          addPoly([[cx, y - d * 0.5], [x + 1, cy - d * 0.5], [cx, y + 1 - d * 0.5], [x, cy - d * 0.5]])
+          ops.push({ k: 'poly', pts: [[x, f2(cy - d * 0.5)], [cx, f2(y + 1 - d * 0.5)], [cx, f2(y + 1 + d * 0.5)], [x, f2(cy + d * 0.5)]], paint: { c: shade(S.fg1, -0.22) } })
+          ops.push({ k: 'poly', pts: [[cx, f2(y + 1 - d * 0.5)], [x + 1, f2(cy - d * 0.5)], [x + 1, f2(cy + d * 0.5)], [cx, f2(y + 1 + d * 0.5)]], paint: { c: shade(S.fg1, -0.42) } })
+          break
+        }
+        case 'vline': {
+          if (top) break
+          let len = 1
+          while (isDark(r + len, c) && !inFinder(r + len, c, n) && !underLogo(r + len, c, n)) len++
+          addRRect(x + 0.12, y, 0.76, len, [0.38, 0.38, 0.38, 0.38])
+          break
+        }
+        case 'diamond': addPoly([[x + 0.5, y + 0.03], [x + 0.97, y + 0.5], [x + 0.5, y + 0.97], [x + 0.03, y + 0.5]]); break
+        case 'plus': {
+          const t = 0.38
+          addRRect(x, y + (1 - t) / 2, 1, t, [t / 2, t / 2, t / 2, t / 2])
+          addRRect(x + (1 - t) / 2, y, t, 1, [t / 2, t / 2, t / 2, t / 2])
+          break
+        }
+        case 'target':
+          ops.push({ k: 'ringop', cx: x + 0.5, cy: y + 0.5, r: 0.34, lw: 0.2, paint })
+          addCircle(x + 0.5, y + 0.5, 0.15)
+          break
+        case 'fade': {
+          const dist = Math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2)
+          const sc = 1 - 0.3 * Math.min(1, dist / (n * 0.6))
+          const inset = (1 - sc) / 2
+          addRRect(x + inset, y + inset, sc, sc, [sc * 0.3, sc * 0.3, sc * 0.3, sc * 0.3])
+          break
+        }
+      }
+    }
+  }
+
+  /* 三个定位角：外框永远完整，保证可扫性 */
+  const cs = S.cornerStyle === 'auto'
+    ? (['dots', 'jitter', 'ring', 'target'].includes(S.styleId) ? 'dot'
+      : ['line', 'vline', 'fade'].includes(S.styleId) ? 'rounded' : 'square')
+    : S.cornerStyle
+  for (const [r0, c0] of [[0, 0], [0, n - 7], [n - 7, 0]]) {
+    const x = c0 + 0.5, y = r0 + 0.5
+    if (cs === 'dot') {
+      ops.push({ k: 'ringop', cx: x, cy: y, r: 3, lw: 1, paint })
+      addCircle(x, y, 1.5)
+    } else if (cs === 'rounded') {
+      ops.push({ k: 'srect', x: x - 3, y: y - 3, w: 6, h: 6, r: 2, lw: 1, paint })
+      addRRect(x - 1.5, y - 1.5, 3, 3, [0.8, 0.8, 0.8, 0.8])
+    } else {
+      // 四条边拼成环，避免 evenodd 兼容性问题
+      addRRect(c0, r0, 7, 1, [0, 0, 0, 0])
+      addRRect(c0, r0 + 6, 7, 1, [0, 0, 0, 0])
+      addRRect(c0, r0 + 1, 1, 5, [0, 0, 0, 0])
+      addRRect(c0 + 6, r0 + 1, 1, 5, [0, 0, 0, 0])
+      addRRect(c0 + 2, r0 + 2, 3, 3, [0, 0, 0, 0])
+    }
+  }
+
+  /* 装饰边框：画在静区外侧，不侵入码本体 */
+  const fp = { c: S.fg1 }
+  if (S.frameStyle === 'line') ops.push({ k: 'srect', x: -1.25, y: -1.25, w: n + 2.5, h: n + 2.5, r: 0.8, lw: 0.5, paint: fp })
+  else if (S.frameStyle === 'dashed') ops.push({ k: 'srect', x: -1.25, y: -1.25, w: n + 2.5, h: n + 2.5, r: 0.8, lw: 0.5, paint: fp, dash: [1.1, 0.9] })
+  else if (S.frameStyle === 'card') ops.push({ k: 'srect', x: -1.3, y: -1.3, w: n + 2.6, h: n + 2.6, r: 2, lw: 1.2, paint: fp })
+  else if (S.frameStyle === 'double') {
+    ops.push({ k: 'srect', x: -0.95, y: -0.95, w: n + 1.9, h: n + 1.9, r: 0.6, lw: 0.4, paint: fp })
+    ops.push({ k: 'srect', x: -2, y: -2, w: n + 4, h: n + 4, r: 1, lw: 0.4, paint: fp })
+  }
+
+  /* 横幅：贴外缘的全宽色条，文字反白 */
+  if (S.bannerPos !== 'none') {
+    const { padAll } = framePads(n)
+    const edge = S.margin + padAll
+    const txt = ($('bannerText').value || '').trim() || '扫一扫'
+    const drawBanner = (y) => {
+      ops.push({ k: 'path', d: rrPath(-edge, y, n + 2 * edge, BANNER_H - 0.4, [0, 0, 0, 0]), paint: fp })
+      ops.push({ k: 'text', x: n / 2, y: y + (BANNER_H - 0.4) / 2, size: 2.2, text: txt, color: S.transparent ? '#ffffff' : S.bg })
+    }
+    if (S.bannerPos === 'bottom') drawBanner(n + edge - BANNER_H + 0.2)
+    else if (S.bannerPos === 'top') drawBanner(-edge + 0.2)
+    else { drawBanner(-edge + 0.2); drawBanner(n + edge - BANNER_H + 0.2) }
+  }
+
+  return ops
+}
+
+function makePaint(n) {
+  if (S.fillMode === 'solid') return { c: S.fg1 }
+  if (S.fillMode === 'linear') return { grad: { type: 'linear', x1: 0, y1: 0, x2: n, y2: n, stops: [S.fg1, S.fg2] } }
+  return { grad: { type: 'radial', cx: n / 2, cy: n / 2, r: n * 0.75, stops: [S.fg2, S.fg1] } }
+}
+
+/* ================= Canvas 渲染 ================= */
+function renderCanvas(canvas, m, px) {
+  const n = m.length
+  const { padAll } = framePads(n)
+  const off = S.margin + padAll
+  const total = n + off * 2
+  const s = px / total
+  canvas.width = px
+  canvas.height = px
+  const g = canvas.getContext('2d')
+  g.clearRect(0, 0, px, px)
+  if (!S.transparent) {
+    g.fillStyle = S.bg
+    g.fillRect(0, 0, px, px)
+  }
+  g.save()
+  g.translate(off * s, off * s)
+  g.scale(s, s)
+
+  const ops = buildOps(m)
+  for (const op of ops) {
+    const fill = paintToCanvas(g, op.paint)
+    if (op.k === 'path') {
+      const p = new Path2D(op.d)
+      if (fill) { g.fillStyle = fill; g.fill(p) }
+    } else if (op.k === 'circle') {
+      g.beginPath(); g.arc(op.cx, op.cy, op.r, 0, Math.PI * 2)
+      if (fill) { g.fillStyle = fill; g.fill() }
+    } else if (op.k === 'poly') {
+      g.beginPath()
+      op.pts.forEach((pt, i) => (i ? g.lineTo(pt[0], pt[1]) : g.moveTo(pt[0], pt[1])))
+      g.closePath()
+      if (fill) { g.fillStyle = fill; g.fill() }
+    } else if (op.k === 'ringop') {
+      g.beginPath(); g.arc(op.cx, op.cy, op.r, 0, Math.PI * 2)
+      g.strokeStyle = fill || S.fg1
+      g.lineWidth = op.lw
+      g.stroke()
+    } else if (op.k === 'srect') {
+      g.beginPath()
+      g.roundRect ? g.roundRect(op.x, op.y, op.w, op.h, op.r) : g.rect(op.x, op.y, op.w, op.h)
+      g.strokeStyle = fill || S.fg1
+      g.lineWidth = op.lw
+      if (op.dash) g.setLineDash(op.dash)
+      g.stroke()
+      g.setLineDash([])
+    } else if (op.k === 'text') {
+      g.fillStyle = op.color
+      g.font = `600 ${op.size}px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif`
+      g.textAlign = 'center'
+      g.textBaseline = 'middle'
+      g.fillText(op.text, op.x, op.y)
+    }
+  }
+
+  // Logo 贴在中心（挖空区域之上）
+  if (S.logoImg) {
+    const half = (S.logoScale * n) / 2
+    g.drawImage(S.logoImg, n / 2 - half, n / 2 - half, half * 2, half * 2)
+  }
+
+  g.restore()
+}
+
+function paintToCanvas(g, paint) {
+  if (!paint) return ''
+  if (paint.c) return paint.c
+  const gr = paint.grad
+  let lg
+  if (gr.type === 'linear') lg = g.createLinearGradient(gr.x1, gr.y1, gr.x2, gr.y2)
+  else lg = g.createRadialGradient(gr.cx, gr.cy, 0, gr.cx, gr.cy, gr.r)
+  lg.addColorStop(0, gr.stops[0])
+  lg.addColorStop(1, gr.stops[1])
+  return lg
+}
+
+/* ================= SVG 导出 ================= */
+function buildSvg(m) {
+  const n = m.length
+  const { padAll } = framePads(n)
+  const off = S.margin + padAll
+  const total = n + off * 2
+
+  const defs = []
+  const paintTo = (paint, id) => {
+    if (!paint) return 'none'
+    if (paint.c) return paint.c
+    const gr = paint.grad
+    if (gr.type === 'linear') {
+      defs.push(`<linearGradient id="${id}" x1="${gr.x1}" y1="${gr.y1}" x2="${gr.x2}" y2="${gr.y2}" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="${gr.stops[0]}"/><stop offset="1" stop-color="${gr.stops[1]}"/></linearGradient>`)
+    } else {
+      defs.push(`<radialGradient id="${id}" cx="${gr.cx}" cy="${gr.cy}" r="${gr.r}" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="${gr.stops[0]}"/><stop offset="1" stop-color="${gr.stops[1]}"/></radialGradient>`)
+    }
+    return `url(#${id})`
+  }
+
+  let gi = 0
+  const body = []
+  for (const op of buildOps(m)) {
+    const id = 'g' + (++gi)
+    if (op.k === 'path') {
+      body.push(`<path d="${op.d}" fill="${paintTo(op.paint, id)}"/>`)
+    } else if (op.k === 'circle') {
+      body.push(`<circle cx="${op.cx}" cy="${op.cy}" r="${op.r}" fill="${paintTo(op.paint, id)}"/>`)
+    } else if (op.k === 'poly') {
+      body.push(`<polygon points="${op.pts.map((p) => p.join(',')).join(' ')}" fill="${paintTo(op.paint, id)}"/>`)
+    } else if (op.k === 'ringop') {
+      body.push(`<circle cx="${op.cx}" cy="${op.cy}" r="${op.r}" fill="none" stroke="${paintTo(op.paint, id)}" stroke-width="${op.lw}"/>`)
+    } else if (op.k === 'srect') {
+      body.push(`<rect x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" rx="${op.r}" fill="none"
+        stroke="${paintTo(op.paint, id)}" stroke-width="${op.lw}"${op.dash ? ` stroke-dasharray="${op.dash.join(' ')}"` : ''}/>`)
+    } else if (op.k === 'text') {
+      body.push(`<text x="${op.x}" y="${op.y}" fill="${op.color}" font-size="${op.size}" font-weight="600"
+        text-anchor="middle" dominant-baseline="middle"
+        font-family="-apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif">${esc(op.text)}</text>`)
+    }
+  }
+
+  let logo = ''
+  if (S.logoImg && S.logoDataUrl) {
+    const half = (S.logoScale * n) / 2
+    logo = `<image href="${S.logoDataUrl}" x="${n / 2 - half}" y="${n / 2 - half}" width="${half * 2}" height="${half * 2}"/>`
+  }
+
+  const bgRect = S.transparent ? '' : `<rect width="${total}" height="${total}" fill="${S.bg}"/>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="${total}" viewBox="0 0 ${total} ${total}">
+<defs>${defs.join('')}</defs>
+${bgRect}
+<g transform="translate(${off},${off})">
+${body.join('\n')}
+${logo}
+</g>
+</svg>`
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+}
+
+/* ================= UI 构建 ================= */
+function buildChips(boxId, list, key, after) {
+  const box = $(boxId)
+  box.innerHTML = ''
+  list.forEach((it) => {
+    const b = document.createElement('button')
+    b.className = 'chip' + (S[key] === it.id ? ' on' : '')
+    b.dataset.id = it.id
+    b.textContent = it.name
+    b.addEventListener('click', () => {
+      S[key] = it.id
+      box.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x.dataset.id === it.id))
+      if (after) after()
+      update()
+    })
+    box.appendChild(b)
+  })
+}
+
+buildChips('styles', STYLES, 'styleId')
+buildChips('corners', CORNERS, 'cornerStyle')
+buildChips('frames', FRAMES, 'frameStyle')
+buildChips('banners', BANNERS, 'bannerPos')
+buildChips('ecc', ECCS, 'ecc')
+buildChips('fills', FILLS, 'fillMode')
+
+SIZES.forEach((sz) => {
+  const b = document.createElement('button')
+  b.className = 'chip' + (S.exportSize === sz ? ' on' : '')
+  b.textContent = sz + 'px'
+  b.addEventListener('click', () => {
+    S.exportSize = sz
+    document.querySelectorAll('#sizes .chip').forEach((x) => x.classList.toggle('on', x.textContent === sz + 'px'))
+    update()
+  })
+  $('sizes').appendChild(b)
+})
+
+$('text').addEventListener('input', update)
+$('bannerText').addEventListener('input', update)
+$('fg1').addEventListener('input', (e) => { S.fg1 = e.target.value; update() })
+$('fg2').addEventListener('input', (e) => { S.fg2 = e.target.value; update() })
+$('bg').addEventListener('input', (e) => { S.bg = e.target.value; update() })
+$('transBg').addEventListener('click', () => {
+  S.transparent = !S.transparent
+  $('transBg').classList.toggle('on', S.transparent)
+  update()
+})
+$('hideDots').addEventListener('change', (e) => { S.hideDots = e.target.checked; update() })
+$('logoScale').addEventListener('input', (e) => {
+  S.logoScale = Number(e.target.value) / 100
+  $('logoScaleVal').textContent = e.target.value + '%'
+  update()
+})
+$('logoPad').addEventListener('input', (e) => {
+  S.logoPad = Number(e.target.value)
+  $('logoPadVal').textContent = e.target.value
+  update()
+})
+
+$('pickLogo').addEventListener('click', () => $('fileLogo').click())
+$('clearLogo').addEventListener('click', () => {
+  S.logoImg = null
+  S.logoDataUrl = ''
+  $('clearLogo').hidden = true
+  update()
+})
+$('fileLogo').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0]
+  e.target.value = ''
+  if (!f) return
+  const fr = new FileReader()
+  fr.onload = () => {
+    const img = new Image()
+    img.onload = () => {
+      S.logoImg = img
+      S.logoDataUrl = fr.result
+      $('clearLogo').hidden = false
+      update()
+    }
+    img.src = fr.result
+  }
+  fr.readAsDataURL(f)
+})
+
+document.querySelectorAll('[data-preset]').forEach((b) => {
+  b.addEventListener('click', () => {
+    $('text').value = b.dataset.preset
+    update()
+  })
+})
+
+$('reseed').addEventListener('click', () => { S.seed = Math.floor(Math.random() * 99999); update() })
+
+/* ================= 主流程 ================= */
+let lastMatrix = null
+
+function update() {
+  const text = $('text').value
+  const err = $('err')
+  err.hidden = true
+
+  if (text.length > 1200) {
+    err.hidden = false
+    err.textContent = '内容太长（' + text.length + ' 字符），最多约 1200 字符；建议缩短或改用短链接。'
+  }
+
+  try {
+    lastMatrix = buildMatrix(text, S.ecc)
+  } catch (e) {
+    err.hidden = false
+    err.textContent = '生成失败：' + (e.message || e) + '（内容可能超出该容错等级的容量上限）'
+    return
+  }
+
+  renderCanvas($('cv'), lastMatrix, S.exportSize)
+  const n = lastMatrix.length
+  $('meta1').textContent = `${n} × ${n} 模块 · 容错 ${S.ecc} · ${text.length} 字符`
+  $('meta2').textContent = `${S.exportSize} × ${S.exportSize} px`
+}
+
+function download(blob, name) {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+}
+
+$('dlPng').addEventListener('click', () => {
+  if (!lastMatrix) return
+  $('cv').toBlob((b) => b && download(b, 'qrcode-' + S.exportSize + '.png'), 'image/png')
+})
+
+$('dlSvg').addEventListener('click', () => {
+  if (!lastMatrix) return
+  const svg = buildSvg(lastMatrix)
+  download(new Blob([svg], { type: 'image/svg+xml' }), 'qrcode.svg')
+})
+
+/* 启动 */
+update()
+</script>
+</body>
+</html>
